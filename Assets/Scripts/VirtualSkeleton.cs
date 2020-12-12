@@ -15,10 +15,12 @@ public class VirtualSkeleton : MonoBehaviour
 
     public GameObject Warrning;
 
+    [Range(0.01f, 0.1f)]
+    public float P;
     public bool IsUseAverageFilter;
     public int AverageFilterCapacity;
 
-    private V4AverageFilter AverageFilter;
+    private V4AverageFilter[] AverageFilter;
 
     private string _data = "Started";
     private Queue<string> _logs = new Queue<string>();
@@ -34,8 +36,6 @@ public class VirtualSkeleton : MonoBehaviour
 
     void Start()
     {
-        AverageFilter = new V4AverageFilter(AverageFilterCapacity);
-
         for (int i = 0; i < (int)Skeleton.Indexs.Lenght; i++)
         {
             IsContole[i] = PlayerPrefs.GetInt("IsContoleable" + i, 0) > 0;
@@ -46,6 +46,13 @@ public class VirtualSkeleton : MonoBehaviour
         _startRotation = new float[transforms.Length];
         _offsets = new float[transforms.Length];
         _dynamicOffsets = new float[transforms.Length];
+
+        AverageFilter = new V4AverageFilter[transforms.Length];
+        for (int i = 0; i < AverageFilter.Length; i++)
+        {
+            AverageFilter[i] = new V4AverageFilter(AverageFilterCapacity);
+        }
+
 
 
         for (int i = 0; i < transforms.Length; i++)
@@ -100,8 +107,17 @@ public class VirtualSkeleton : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (AverageFilterCapacity != AverageFilter.GetFilterCapacity()) AverageFilter.SetFilterCapacity(AverageFilterCapacity);
-            UpdateBonesAngles();
+        for (int i = 0; i < AverageFilter.Length; i++)
+        {
+            AverageFilter[i].P = P;
+        }
+        if (AverageFilterCapacity != AverageFilter[0].GetFilterCapacity())
+            for (int i = 0; i < AverageFilter.Length; i++)
+            {
+                AverageFilter[i].SetFilterCapacity(AverageFilterCapacity);
+            }
+
+        UpdateBonesAngles();
         MainUI.Self.UpdateLogField(_data);
         WriteLogs();
     }
@@ -202,8 +218,8 @@ public class VirtualSkeleton : MonoBehaviour
                     float.Parse(data2[3], CultureInfo.GetCultureInfo("en-GB")) // .Replace('.', ',')
                     );
 
-                AverageFilter.NewValue(Data);
-                if (IsUseAverageFilter) Data = AverageFilter.GetAverageValue();
+                AverageFilter[index].NewValue(Data);
+                if (IsUseAverageFilter) Data = AverageFilter[index].GetAverageValue();
 
                 Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
 
@@ -252,7 +268,8 @@ public class VirtualSkeleton : MonoBehaviour
 public class V4AverageFilter
 {
     private Queue<Vector4> _data;
-    private Vector4 _sum;
+    private Vector4 _sum, _prevVal, _newVal;
+    public float P;
 
     public V4AverageFilter(int count)
     {
@@ -265,14 +282,22 @@ public class V4AverageFilter
 
     public void NewValue(Vector4 value)
     {
-        _data.Enqueue(value);
+        /*_data.Enqueue(value);
         _sum += value;
-        _sum -= _data.Dequeue();
+        _sum -= _data.Dequeue();*/
+        if (Mathf.Abs(value.y - _prevVal.y) > 0.1f || Mathf.Abs(value.z - _prevVal.z) > P) _prevVal = _newVal;
+        _newVal = value;
     }
 
     public Vector4 GetAverageValue()
     {
-        return _sum / _data.Count;
+        /*return _sum / _data.Count;*/
+        return new Vector4(
+            _newVal.x,
+            Mathf.Abs(_newVal.y - _prevVal.y) > P ? _newVal.y : _prevVal.y,
+            Mathf.Abs(_newVal.z - _prevVal.z) > P ? _newVal.z : _prevVal.z,
+            _newVal.w
+        );
     }
 
     public void SetFilterCapacity(int value)
