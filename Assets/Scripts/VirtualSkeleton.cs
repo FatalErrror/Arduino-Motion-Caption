@@ -17,6 +17,7 @@ public class VirtualSkeleton : MonoBehaviour
 
     public bool IsUseAverageFilter;
     public int AverageFilterCapacity;
+
     private V4AverageFilter AverageFilter;
 
     private string _data = "Started";
@@ -99,7 +100,8 @@ public class VirtualSkeleton : MonoBehaviour
 
     private void FixedUpdate()
     {
-        UpdateBonesAngles();
+        if (AverageFilterCapacity != AverageFilter.GetFilterCapacity()) AverageFilter.SetFilterCapacity(AverageFilterCapacity);
+            UpdateBonesAngles();
         MainUI.Self.UpdateLogField(_data);
         WriteLogs();
     }
@@ -141,7 +143,7 @@ public class VirtualSkeleton : MonoBehaviour
     {
         for (int i = 0; i < SettingDynamicOffestsTime; i++)
         {
-            Warrning.GetComponent<UnityEngine.UI.Text>().text = "DONT MOVE OR TOUCH SENSORS " + (SettingDynamicOffestsTime-i) + " sec";
+            Warrning.GetComponent<UnityEngine.UI.Text>().text = "DONT MOVE OR TOUCH SENSORS " + (SettingDynamicOffestsTime - i) + " sec";
             yield return new WaitForSecondsRealtime(1);
         }
     }
@@ -179,7 +181,7 @@ public class VirtualSkeleton : MonoBehaviour
 
     private void UpdateBonesAngles()//data example: |0=10.2_-12.5_102.0_102.0|1=10.2_-12.5_102.0_102.0|HF
     {
-        
+
         string a = _portReader.GetData();
         if (a != null) _data = a;
         _portReader.UpdateData();
@@ -221,7 +223,7 @@ public class VirtualSkeleton : MonoBehaviour
         }
     }
 
-    
+
     public void DataParserForLog(string data)
     {
         if (data[0] != '|')
@@ -254,9 +256,8 @@ public class V4AverageFilter
 
     public V4AverageFilter(int count)
     {
-        var _count = Mathf.Abs(count);
         _data = new Queue<Vector4>();
-        for (int i = 0; i < _count; i++)
+        for (int i = 0; i < Mathf.Abs(count); i++)
         {
             _data.Enqueue(Vector4.zero);
         }
@@ -274,5 +275,24 @@ public class V4AverageFilter
         return _sum / _data.Count;
     }
 
+    public void SetFilterCapacity(int value)
+    {
+        var count = value - _data.Count;
+        if (count < 0)
+            for (int i = 0; i < Mathf.Abs(count); i++)
+            {
+                _data.Dequeue();
+            }
+        else
+            for (int i = 0; i < count; i++)
+            {
+                _data.Enqueue(Vector4.zero);
+            }
+    }
+
+    public int GetFilterCapacity()
+    {
+        return _data.Count;
+    }
 
 }
