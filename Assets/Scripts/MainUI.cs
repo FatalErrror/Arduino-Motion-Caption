@@ -15,6 +15,17 @@ public class MainUI : MonoBehaviour
     delegate void f(string message);
     private static f  _log, _addToPrevLog, _logerror;
 
+    /*[Header("Debug and test area")]
+    V4AverageFilter Testy = new V4AverageFilter(120);
+    public Vector4 InputV4;
+    public Vector4 OutputV4;
+
+    private void Update()
+    {
+        Testy.NewValue(InputV4);
+        OutputV4 = Testy.GetAverageValue();
+    }*/
+
 
     // Start is called before the first frame update
     private void Awake()
@@ -112,6 +123,12 @@ public class MainUI : MonoBehaviour
     public void StopUseDynamicOffsets()
     {
         MainVirtualSkeleton.StopUseDynamicOffsets();
+    }
+
+
+    public void IsUseAverageFilter(bool val)
+    {
+        MainVirtualSkeleton.IsUseAverageFilter = val;
     }
 
 }

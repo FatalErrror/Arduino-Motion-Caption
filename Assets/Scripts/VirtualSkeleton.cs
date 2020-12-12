@@ -15,17 +15,26 @@ public class VirtualSkeleton : MonoBehaviour
 
     public GameObject Warrning;
 
+    public bool IsUseAverageFilter;
+    public int AverageFilterCapacity;
+    private V4AverageFilter AverageFilter;
+
     private string _data = "Started";
     private Queue<string> _logs = new Queue<string>();
 
 
-    public float[] _startRotation, _offsets, _dynamicOffsets;
+    private float[] _startRotation, _offsets, _dynamicOffsets;
 
 
     private PortReader _portReader;
 
+
+
+
     void Start()
     {
+        AverageFilter = new V4AverageFilter(AverageFilterCapacity);
+
         for (int i = 0; i < (int)Skeleton.Indexs.Lenght; i++)
         {
             IsContole[i] = PlayerPrefs.GetInt("IsContoleable" + i, 0) > 0;
@@ -112,7 +121,7 @@ public class VirtualSkeleton : MonoBehaviour
 
     public void StartSettingDynamicOffsets()
     {
-        if (!Warrning.active)
+        if (!Warrning.activeSelf)
         {
             StopUseDynamicOffsets();
             Warrning.SetActive(true);
@@ -190,6 +199,10 @@ public class VirtualSkeleton : MonoBehaviour
                     float.Parse(data2[2], CultureInfo.GetCultureInfo("en-GB")),// .Replace('.', ',')
                     float.Parse(data2[3], CultureInfo.GetCultureInfo("en-GB")) // .Replace('.', ',')
                     );
+
+                AverageFilter.NewValue(Data);
+                if (IsUseAverageFilter) Data = AverageFilter.GetAverageValue();
+
                 Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
 
                 Transform item = Skeleton.GetBonesArray()[index];
@@ -230,5 +243,36 @@ public class VirtualSkeleton : MonoBehaviour
     {
         _offsets[boneIndex] += offset;
     }
+
+}
+
+
+public class V4AverageFilter
+{
+    private Queue<Vector4> _data;
+    private Vector4 _sum;
+
+    public V4AverageFilter(int count)
+    {
+        var _count = Mathf.Abs(count);
+        _data = new Queue<Vector4>();
+        for (int i = 0; i < _count; i++)
+        {
+            _data.Enqueue(Vector4.zero);
+        }
+    }
+
+    public void NewValue(Vector4 value)
+    {
+        _data.Enqueue(value);
+        _sum += value;
+        _sum -= _data.Dequeue();
+    }
+
+    public Vector4 GetAverageValue()
+    {
+        return _sum / _data.Count;
+    }
+
 
 }
