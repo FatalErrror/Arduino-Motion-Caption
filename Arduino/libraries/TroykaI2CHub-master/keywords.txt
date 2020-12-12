@@ -1,0 +1,16 @@
+#######################################
+# Syntax Coloring Map TroykaI2CHub
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+TroykaI2CHub 	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin			KEYWORD2
+setBusChannel	KEYWORD2
