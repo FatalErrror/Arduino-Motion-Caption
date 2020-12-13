@@ -37,8 +37,9 @@ class Sensor  // имя класса принято писать с Большо
     String GetData() {
       mpu.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
       unsigned long tm = millis();
-      unsigned long dtm = tm0 = tm;
-      return String(n) + "=" + String(dtm) + "_" + String(ax) + "_" + String(ay) + "_" + String(az) + "_" + String(gx) + "_" + String(gy) + "_" + String(gz);
+      unsigned long dtm = tm - tm0;
+      tm0 = tm;
+      return String(n) + "=" + String(dtm) + "_" + String(gx) + "_" + String(gy) + "_" + String(gz) + "_" + String(ax) + "_" + String(ay) + "_" + String(az);
     }
 };
 
