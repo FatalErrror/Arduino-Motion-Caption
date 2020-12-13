@@ -12,7 +12,8 @@ public class PortReader
 
     private SerialPort _serialPort;
 
-    private bool _isReading;
+    private bool _dataUpdate, _isReading;
+    private string _data, _readabledate;
 
     private Thread _thread;
     public PortReader(string port, int frequency)
@@ -35,7 +36,13 @@ public class PortReader
             string a = Read();
             if (a != null)
             {
+                _data = a;
                 ParseData(a);
+            }
+            if (_dataUpdate)
+            {
+                _readabledate = _data;
+                _dataUpdate = false;
             }
         }
     }
@@ -66,6 +73,17 @@ public class PortReader
             catch (System.Exception)
             {}
         }
+    }
+
+    public string GetData()
+    {
+        if (!_dataUpdate) return _readabledate;
+        else return null;
+    }
+
+    public void UpdateData()
+    {
+        _dataUpdate = true;
     }
 
     

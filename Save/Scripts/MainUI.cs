@@ -100,10 +100,12 @@ public class MainUI : MonoBehaviour
         LogField.text = text;
     }
 
+    
     public void AddToLogField(string text)
     {
         LogField.text += text;
     }
+
 
 
 
@@ -132,7 +134,7 @@ public class MainUI : MonoBehaviour
 
     public void IsUseAverageFilter(bool val)
     {
-        //MainVirtualSkeleton.IsUseAverageFilter = val;
+        MainVirtualSkeleton.IsUseAverageFilter = val;
     }
 
 }
