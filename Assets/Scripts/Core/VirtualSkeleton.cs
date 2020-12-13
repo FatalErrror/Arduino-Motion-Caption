@@ -5,10 +5,7 @@ using UnityEngine;
 public class VirtualSkeleton : MonoBehaviour
 {
     public const int SENSORS_COUNT = 8;
-    public const float TO_RAD = 0.01745329252f;
-    public const float TO_DEG_PER_SEC = 16.384f;
-
-
+    
     public Skeleton Skeleton;
     public GameObject Container;
 
@@ -19,13 +16,11 @@ public class VirtualSkeleton : MonoBehaviour
 
     private bool[] _isContole;
     private int[] _numberMap = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
-    private float[] _startRotation, _offsets, _dynamicOffsets;
-
 
     private PortReader _portReader;
     private Queue<string> _data = new Queue<string>();
-    private MadgwickAHRS[] _dmp;
-    private Transform[] VirtualSensors;
+
+    private VirtualSensor[] VirtualSensors;
     
 
     void Start()
@@ -38,37 +33,13 @@ public class VirtualSkeleton : MonoBehaviour
             _numberMap[i] = PlayerPrefs.GetInt("NumberMap" + i, i);
         }
 
-
-        VirtualSensors = new Transform[SENSORS_COUNT];
-        _dmp = new MadgwickAHRS[SENSORS_COUNT];
-        _startRotation = new float[SENSORS_COUNT];
-        _offsets = new float[SENSORS_COUNT];
-        _dynamicOffsets = new float[SENSORS_COUNT];
-
+        VirtualSensors = new VirtualSensor[SENSORS_COUNT];
 
         Transform[] transforms = Skeleton.GetBonesArray();
         for (int i = 0; i < SENSORS_COUNT; i++)
         {
-            VirtualSensors[i] = transforms[i];
-            _dmp[i] = new MadgwickAHRS();
+            VirtualSensors[i] = new VirtualSensor(transforms[i], Container, Skeleton.GetRoot(), _isContole[i]);
         }
-
-
-
-        for (int i = 0; i < SENSORS_COUNT; i++)
-        {
-            Transform item = VirtualSensors[i];
-            Transform container = Instantiate(Container, item).transform;
-            container.parent = item.parent;
-            item.parent = container;
-            _startRotation[i] = item.rotation.eulerAngles.y;
-            if (_isContole.Length > i)
-            {
-                if (_isContole[i]) container.parent = Skeleton.GetRoot();
-            }
-        }
-
-
 
         StartPortReader();
     }
@@ -110,19 +81,19 @@ public class VirtualSkeleton : MonoBehaviour
     private void FixedUpdate()
     {
         DataParser();
-        UpdateBonesAngles();
     }
 
     public void Calibrate()
     {
-        Invoke(nameof(CalibrateImmediately), 3);
+        StartCoroutine(CalibrateImmediately());
     }
 
-    public void CalibrateImmediately()
+    public IEnumerator<WaitForSecondsRealtime> CalibrateImmediately()
     {
+        yield return new WaitForSecondsRealtime(3f);
         for (int i = 0; i < VirtualSensors.Length; i++)
         {
-            _offsets[i] = _startRotation[i] - (VirtualSensors[i].rotation.eulerAngles.y - _offsets[i]);
+            VirtualSensors[i].Calibrate();
         }
     }
 
@@ -133,13 +104,11 @@ public class VirtualSkeleton : MonoBehaviour
         {
             StopUseDynamicOffsets();
             Warrning.SetActive(true);
-            Transform[] transforms = Skeleton.GetBonesArray();
-            for (int i = 0; i < transforms.Length; i++)
+            for (int i = 0; i < VirtualSensors.Length; i++)
             {
-                _dynamicOffsets[i] = transforms[i].rotation.eulerAngles.y;
+                
             }
             Warrning.GetComponent<UnityEngine.UI.Text>().text = "DONT MOVE OR TOUCH SENSORS " + SettingDynamicOffestsTime + " sec";
-            Invoke(nameof(SetDynamicOffsets), SettingDynamicOffestsTime);
 
             StartCoroutine(Timer());
         }
@@ -152,6 +121,7 @@ public class VirtualSkeleton : MonoBehaviour
             Warrning.GetComponent<UnityEngine.UI.Text>().text = "DONT MOVE OR TOUCH SENSORS " + (SettingDynamicOffestsTime - i) + " sec";
             yield return new WaitForSecondsRealtime(1);
         }
+        SetDynamicOffsets();
     }
 
 
@@ -160,46 +130,16 @@ public class VirtualSkeleton : MonoBehaviour
         Transform[] transforms = Skeleton.GetBonesArray();
         for (int i = 0; i < transforms.Length; i++)
         {
-            _dynamicOffsets[i] = (transforms[i].rotation.eulerAngles.y - _dynamicOffsets[i]) / (SettingDynamicOffestsTime / UseDinamicOffsetsDeltaTime);
+            //_dynamicOffsets[i] = (transforms[i].rotation.eulerAngles.y - _dynamicOffsets[i]) / (SettingDynamicOffestsTime / UseDinamicOffsetsDeltaTime);
         }
         Warrning.SetActive(false);
-        UseDynamicOffsets();
-    }
-
-    private void UseDynamicOffsets()
-    {
-        for (int i = 0; i < _offsets.Length; i++)
-        {
-            _offsets[i] += _dynamicOffsets[i];
-        }
-        Invoke(nameof(UseDynamicOffsets), UseDinamicOffsetsDeltaTime);
     }
 
     public void StopUseDynamicOffsets()
     {
         Warrning.SetActive(false);
         StopAllCoroutines();
-        CancelInvoke(nameof(SetDynamicOffsets));
-        CancelInvoke(nameof(UseDynamicOffsets));
     }
-
-
-
-
-    private void UpdateBonesAngles()
-    {
-        for (int i = 0; i < SENSORS_COUNT; i++)
-        {
-            Vector4 Data = _dmp[i].GetQuaternion();
-            //
-            Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
-
-            Transform item = Skeleton.GetBonesArray()[i];
-            item.localRotation = q;
-            item.Rotate(0, _offsets[i], 0, Space.World);
-        }
-    }
-
 
 
     public void AsyncDataParser(string data)
@@ -238,6 +178,10 @@ public class VirtualSkeleton : MonoBehaviour
             {
                 MainUI.Self.UpdateLogField(stream);
                 ParaseSensorsData(stream);
+                for (int i = 0; i < VirtualSensors.Length; i++)
+                {
+                    VirtualSensors[i].UpdateTransform();
+                }
             }
             else
             {
@@ -263,20 +207,15 @@ public class VirtualSkeleton : MonoBehaviour
             string[] data1 = datas[i].Split('=');
             int index = _numberMap[int.Parse(data1[0])];
             string[] data2 = data1[1].Split('_');
+            float[] data3 = new float[data2.Length - 1];
+            for (int j = 0; j < data3.Length; j++)
+            {
+                data3[j] = StrToF(data2[j+1]);
+            }
 
-            float gx = StrToF(data2[1]) * TO_RAD / TO_DEG_PER_SEC;
-            float gy = StrToF(data2[2]) * TO_RAD / TO_DEG_PER_SEC;
-            float gz = StrToF(data2[3]) * TO_RAD / TO_DEG_PER_SEC;
-            float ax = StrToF(data2[4]);
-            float ay = StrToF(data2[5]);
-            float az = StrToF(data2[6]);
-
-
-
-            _dmp[index].UpdateIMU(long.Parse(data2[0]) / 1000f, gx, gy, gz, ax, ay, az);
+            VirtualSensors[index].UpdateData(long.Parse(data2[0]), data3);
         }
     }
-
 
 
     private float StrToF(string value)
@@ -285,11 +224,9 @@ public class VirtualSkeleton : MonoBehaviour
     }
 
 
-
-
     public void AddOffset(int boneIndex, float offset)
     {
-        _offsets[boneIndex] += offset;
+        VirtualSensors[boneIndex].AddOffset(offset);
     }
 
 }

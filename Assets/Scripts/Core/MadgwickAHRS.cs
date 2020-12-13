@@ -1,10 +1,9 @@
 using System;
 using UnityEngine;
 
-[Serializable]
 class MadgwickAHRS
 {
-    [SerializeField]
+
     float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f;
 
     public Vector4 GetQuaternion()
