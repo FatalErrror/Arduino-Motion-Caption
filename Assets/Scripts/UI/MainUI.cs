@@ -10,6 +10,7 @@ public class MainUI : MonoBehaviour
 
     public Text Content;
 
+
     public static MainUI Self;
 
     delegate void f(string message);
