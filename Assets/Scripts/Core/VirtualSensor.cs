@@ -8,12 +8,25 @@ public class VirtualSensor
     public const float TO_RAD = 0.01745329252f;
     public const float TO_DEG_PER_SEC = 16.384f;
 
+    public delegate Vector3 func(Vector3 vector);
+    public func Filtrate;
+
     private MadgwickAHRS _dmp;
     private Transform _transform;
 
     private float _startYRotation;
     private float _yRotationOffset;
     private Vector3 _dynamicGyroOffset;
+
+    public Filters.Filters UseFilter;
+    public int RAFCapacity = 10;
+    public float TFThrashold = 100;
+
+    private Filters.Vector4Filters.RuningAverageFilter _runingAverageFilter;
+    private Filters.Vector4Filters.ThrasholdFilter _thrasholdFilter;
+    private Filters.Vector4Filters.ThrasholdRuningAverageFilter _thrasholdRuningAverageFilter;
+
+
 
 
 
@@ -27,6 +40,36 @@ public class VirtualSensor
         _startYRotation = transform.rotation.eulerAngles.y;
          if (isControle) container1.parent = root;
         _dmp = new MadgwickAHRS();
+
+        _runingAverageFilter = new Filters.Vector4Filters.RuningAverageFilter(RAFCapacity);
+        _thrasholdFilter = new Filters.Vector4Filters.ThrasholdFilter(TFThrashold);
+        _thrasholdRuningAverageFilter = new Filters.Vector4Filters.ThrasholdRuningAverageFilter(TFThrashold, RAFCapacity);
+        //Filtrate = Filtrating;
+    }
+
+    private Vector4 Filtrating(Vector4 data)
+    {
+        _runingAverageFilter.SetFilterCapacity(RAFCapacity);
+        _thrasholdFilter.Thrashold = TFThrashold;
+        _thrasholdRuningAverageFilter.Thrashold = TFThrashold;
+        _thrasholdRuningAverageFilter.SetFilterCapacity(RAFCapacity);
+
+        _runingAverageFilter.NewValue(data);
+        _thrasholdFilter.NewValue(data);
+        _thrasholdRuningAverageFilter.NewValue(data);
+
+        switch (UseFilter)
+        {
+            case Filters.Filters.None:
+                return data;
+            case Filters.Filters.RuningAverageFilter:
+                return _runingAverageFilter.GetValue();
+            case Filters.Filters.ThrasholdFilter:
+                return _thrasholdFilter.GetValue();
+            case Filters.Filters.ThrasholdRuningAverageFilter:
+                return _thrasholdRuningAverageFilter.GetValue();
+        }
+        return data;
     }
 
     public void UpdateData(long deltaTime, float[] data)
@@ -38,11 +81,15 @@ public class VirtualSensor
         float ay = data[4];
         float az = data[5];
 
-        //
-
-
-
-        //
+        /*/
+        if (Filtrate.Method != null) 
+        { 
+            var a = Filtrate(new Vector3(ax, ay, az));
+            ax = a.x;
+            ay = a.y;
+            az = a.z;
+        }
+        /*/
 
         gx = gx * TO_RAD / TO_DEG_PER_SEC;
         gy = gy * TO_RAD / TO_DEG_PER_SEC;
@@ -53,6 +100,7 @@ public class VirtualSensor
     public void UpdateTransform()
     {
         Vector4 Data = _dmp.GetQuaternion();
+        Data = Filtrating(Data);
         Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
 
         _transform.localRotation = q;

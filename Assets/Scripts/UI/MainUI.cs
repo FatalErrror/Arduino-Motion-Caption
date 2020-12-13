@@ -10,6 +10,7 @@ public class MainUI : MonoBehaviour
 
     public Text Content;
 
+    public Dropdown Filter;
 
     public static MainUI Self;
 
@@ -135,5 +136,12 @@ public class MainUI : MonoBehaviour
     {
         //MainVirtualSkeleton.IsUseAverageFilter = val;
     }
+
+    public void ChouseFilter(int num)
+    {
+        MainVirtualSkeleton.UseFilter = (Filters.Filters)(num);
+    }
+
+
 
 }

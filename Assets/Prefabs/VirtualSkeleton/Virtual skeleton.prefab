@@ -175,14 +175,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Skeleton: {fileID: 268123202254073895}
   Container: {fileID: 8835048631712055324, guid: 30cb8326643747048b1533c22ba9c28d, type: 3}
-  Hand: {fileID: 0}
-  IsContole: 0000000000010100000000000000
-  NumberMap: 000000000100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d000000
   SettingDynamicOffestsTime: 120
   UseDinamicOffsetsDeltaTime: 5
   Warrning: {fileID: 0}
-  IsUseAverageFilter: 0
-  AverageFilterCapacity: 10
+  UseFilter: 0
+  RAFCapacity: 10
+  TFThrashold: 0.015
 --- !u!114 &268123202254073895
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,6 +13,9 @@ public class VirtualSkeleton : MonoBehaviour
     public float SettingDynamicOffestsTime = 120, UseDinamicOffsetsDeltaTime = 5;
     public GameObject Warrning;
 
+    public Filters.Filters UseFilter;
+    public int RAFCapacity = 10;
+    public float TFThrashold = 100;
 
     private bool[] _isContole;
     private int[] _numberMap = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
@@ -40,6 +43,7 @@ public class VirtualSkeleton : MonoBehaviour
         {
             VirtualSensors[i] = new VirtualSensor(transforms[i], Container, Skeleton.GetRoot(), _isContole[i]);
         }
+
 
         StartPortReader();
     }
@@ -80,6 +84,12 @@ public class VirtualSkeleton : MonoBehaviour
 
     private void FixedUpdate()
     {
+        for (int i = 0; i < SENSORS_COUNT; i++)
+        {
+            VirtualSensors[i].UseFilter = UseFilter;
+            VirtualSensors[i].RAFCapacity = RAFCapacity;
+            VirtualSensors[i].TFThrashold = TFThrashold;
+        }
         DataParser();
     }
 
@@ -124,7 +134,6 @@ public class VirtualSkeleton : MonoBehaviour
         SetDynamicOffsets();
     }
 
-
     private void SetDynamicOffsets()
     {
         Transform[] transforms = Skeleton.GetBonesArray();
@@ -139,6 +148,11 @@ public class VirtualSkeleton : MonoBehaviour
     {
         Warrning.SetActive(false);
         StopAllCoroutines();
+    }
+
+    public void AddOffset(int boneIndex, float offset)
+    {
+        VirtualSensors[boneIndex].AddOffset(offset);
     }
 
 
@@ -217,74 +231,10 @@ public class VirtualSkeleton : MonoBehaviour
         }
     }
 
-
     private float StrToF(string value)
     {
         return float.Parse(value, CultureInfo.GetCultureInfo("en-GB"));
     }
 
-
-    public void AddOffset(int boneIndex, float offset)
-    {
-        VirtualSensors[boneIndex].AddOffset(offset);
-    }
-
 }
 
-
-public class V4AverageFilter
-{
-    private Queue<Vector4> _data;
-    private Vector4 _sum, _prevVal, _newVal;
-    public float P;
-
-    public V4AverageFilter(int count)
-    {
-        _data = new Queue<Vector4>();
-        for (int i = 0; i < Mathf.Abs(count); i++)
-        {
-            _data.Enqueue(Vector4.zero);
-        }
-    }
-
-    public void NewValue(Vector4 value)
-    {
-        /*_data.Enqueue(value);
-        _sum += value;
-        _sum -= _data.Dequeue();*/
-        if (Mathf.Abs(value.y - _prevVal.y) > 0.1f || Mathf.Abs(value.z - _prevVal.z) > P) _prevVal = _newVal;
-        _newVal = value;
-    }
-
-    public Vector4 GetAverageValue()
-    {
-        /*return _sum / _data.Count;*/
-        return new Vector4(
-            _newVal.x,
-            Mathf.Abs(_newVal.y - _prevVal.y) > P ? _newVal.y : _prevVal.y,
-            Mathf.Abs(_newVal.z - _prevVal.z) > P ? _newVal.z : _prevVal.z,
-            _newVal.w
-        );
-    }
-
-    public void SetFilterCapacity(int value)
-    {
-        var count = value - _data.Count;
-        if (count < 0)
-            for (int i = 0; i < Mathf.Abs(count); i++)
-            {
-                _data.Dequeue();
-            }
-        else
-            for (int i = 0; i < count; i++)
-            {
-                _data.Enqueue(Vector4.zero);
-            }
-    }
-
-    public int GetFilterCapacity()
-    {
-        return _data.Count;
-    }
-
-}
