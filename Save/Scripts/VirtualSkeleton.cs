@@ -4,71 +4,69 @@ using UnityEngine;
 
 public class VirtualSkeleton : MonoBehaviour
 {
-    public const int SENSORS_COUNT = 8;
-    public const float TO_RAD = 0.01745329252f;
-    public const float TO_DEG_PER_SEC = 16.384f;
-
-
     public Skeleton Skeleton;
     public GameObject Container;
+    public Hand Hand;
 
+    public bool[] IsContole;
+    public int[] NumberMap = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
 
     public float SettingDynamicOffestsTime = 120, UseDinamicOffsetsDeltaTime = 5;
+
     public GameObject Warrning;
 
+    [Range(0.01f, 0.1f)]
+    public float P;
+    public bool IsUseAverageFilter;
+    public int AverageFilterCapacity;
 
-    private bool[] _isContole;
-    private int[] _numberMap = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
+    private V4AverageFilter[] AverageFilter;
+
+    private string _data = "Started";
+    private Queue<string> _logs = new Queue<string>();
+
+
     private float[] _startRotation, _offsets, _dynamicOffsets;
 
 
     private PortReader _portReader;
-    private Queue<string> _data = new Queue<string>();
-    private MadgwickAHRS[] _dmp;
-    private Transform[] VirtualSensors;
-    
+
+
+
 
     void Start()
     {
-        _isContole = new bool[(int)Skeleton.Indexs.Lenght];
-        _numberMap = new int[(int)Skeleton.Indexs.Lenght];
         for (int i = 0; i < (int)Skeleton.Indexs.Lenght; i++)
         {
-            _isContole[i] = PlayerPrefs.GetInt("IsContoleable" + i, 0) > 0;
-            _numberMap[i] = PlayerPrefs.GetInt("NumberMap" + i, i);
+            IsContole[i] = PlayerPrefs.GetInt("IsContoleable" + i, 0) > 0;
+            NumberMap[i] = PlayerPrefs.GetInt("NumberMap" + i, i);
         }
-
-
-        VirtualSensors = new Transform[SENSORS_COUNT];
-        _dmp = new MadgwickAHRS[SENSORS_COUNT];
-        _startRotation = new float[SENSORS_COUNT];
-        _offsets = new float[SENSORS_COUNT];
-        _dynamicOffsets = new float[SENSORS_COUNT];
-
 
         Transform[] transforms = Skeleton.GetBonesArray();
-        for (int i = 0; i < SENSORS_COUNT; i++)
+        _startRotation = new float[transforms.Length];
+        _offsets = new float[transforms.Length];
+        _dynamicOffsets = new float[transforms.Length];
+
+        AverageFilter = new V4AverageFilter[transforms.Length];
+        for (int i = 0; i < AverageFilter.Length; i++)
         {
-            VirtualSensors[i] = transforms[i];
-            _dmp[i] = new MadgwickAHRS();
+            AverageFilter[i] = new V4AverageFilter(AverageFilterCapacity);
         }
 
 
 
-        for (int i = 0; i < SENSORS_COUNT; i++)
+        for (int i = 0; i < transforms.Length; i++)
         {
-            Transform item = VirtualSensors[i];
+            Transform item = transforms[i];
             Transform container = Instantiate(Container, item).transform;
             container.parent = item.parent;
             item.parent = container;
             _startRotation[i] = item.rotation.eulerAngles.y;
-            if (_isContole.Length > i)
+            if (IsContole.Length > i)
             {
-                if (_isContole[i]) container.parent = Skeleton.GetRoot();
+                if (IsContole[i]) container.parent = Skeleton.GetRoot();
             }
         }
-
-
 
         StartPortReader();
     }
@@ -76,7 +74,7 @@ public class VirtualSkeleton : MonoBehaviour
     public void StartPortReader()
     {
         _portReader = new PortReader(PlayerPrefs.GetString("Port", "COM11"), PlayerPrefs.GetInt("Freqancy", 115200));
-        _portReader.ParseData += AsyncDataParser;
+        _portReader.ParseData += DataParserForLog;
 
 
         if (_portReader != null)
@@ -95,7 +93,7 @@ public class VirtualSkeleton : MonoBehaviour
 
     public void StopPortReader()
     {
-        _portReader.ParseData -= AsyncDataParser;
+        _portReader.ParseData -= DataParserForLog;
         try
         {
             _portReader.End();
@@ -109,8 +107,18 @@ public class VirtualSkeleton : MonoBehaviour
 
     private void FixedUpdate()
     {
-        DataParser();
+        for (int i = 0; i < AverageFilter.Length; i++)
+        {
+            AverageFilter[i].P = P;
+        }
+        if (AverageFilterCapacity != AverageFilter[0].GetFilterCapacity())
+            for (int i = 0; i < AverageFilter.Length; i++)
+            {
+                AverageFilter[i].SetFilterCapacity(AverageFilterCapacity);
+            }
+
         UpdateBonesAngles();
+        WriteLogs();
     }
 
     public void Calibrate()
@@ -120,9 +128,10 @@ public class VirtualSkeleton : MonoBehaviour
 
     public void CalibrateImmediately()
     {
-        for (int i = 0; i < VirtualSensors.Length; i++)
+        Transform[] transforms = Skeleton.GetBonesArray();
+        for (int i = 0; i < transforms.Length; i++)
         {
-            _offsets[i] = _startRotation[i] - (VirtualSensors[i].rotation.eulerAngles.y - _offsets[i]);
+            _offsets[i] = _startRotation[i] - (transforms[i].rotation.eulerAngles.y - _offsets[i]);
         }
     }
 
@@ -185,106 +194,74 @@ public class VirtualSkeleton : MonoBehaviour
 
 
 
-
-    private void UpdateBonesAngles()
+    private void UpdateBonesAngles()//data example: |0=10.2_-12.5_102.0_102.0|1=10.2_-12.5_102.0_102.0|HF
     {
-        for (int i = 0; i < SENSORS_COUNT; i++)
-        {
-            Vector4 Data = _dmp[i].GetQuaternion();
-            //
-            Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
 
-            Transform item = Skeleton.GetBonesArray()[i];
-            item.localRotation = q;
-            item.Rotate(0, _offsets[i], 0, Space.World);
-        }
-    }
+        string a = _portReader.GetData();
+        if (a != null) _data = a;
+        _portReader.UpdateData();
 
 
-
-    public void AsyncDataParser(string data)
-    {
-        _data.Enqueue(data);
-    }
-
-    public void DataParser()
-    {
-        for (int i = 0; i < _data.Count - 1; i++)
-        {
-            var stream = _data.Dequeue();
-            if (stream[0] == '|')
-            {
-                MainUI.Self.UpdateLogField(stream);
-                ParaseSensorsData(stream);
-            }
-            else
-            {
-                if (stream[0] == '>' || stream[0] == '.' || stream[0] == '*')
-                {
-                    MainUI.AddToPrevLog(stream);
-                    MainUI.Self.AddToLogField(stream);
-                }
-                else
-                {
-                    MainUI.Log(stream);
-                    MainUI.Self.UpdateLogField(stream);
-                }
-            }
-        }
-        if (_data.Count > 0)
-        {
-            var stream = _data.Dequeue();
-            if (stream[0] == '|')
-            {
-                MainUI.Self.UpdateLogField(stream);
-                ParaseSensorsData(stream);
-            }
-            else
-            {
-                if (stream[0] == '>' || stream[0] == '.' || stream[0] == '*')
-                {
-                    MainUI.AddToPrevLog(stream);
-                    MainUI.Self.AddToLogField(stream);
-                }
-                else
-                {
-                    MainUI.Log(stream);
-                    MainUI.Self.UpdateLogField(stream);
-                }
-            }
-        }
-    }
-
-    private void ParaseSensorsData(string data)
-    {
-        string[] datas = data.Split('|');
-        for (int i = 1; i < datas.Length; i++)
+        string[] datas = _data.Split('|');
+        for (int i = 0; i < datas.Length; i++)
         {
             string[] data1 = datas[i].Split('=');
-            int index = _numberMap[int.Parse(data1[0])];
-            string[] data2 = data1[1].Split('_');
+            if (data1.Length >= 2)
+            {
+                int index = NumberMap[int.Parse(data1[0])];
+                string[] data2 = data1[1].Split('_');
+                Vector4 Data = new Vector4(
+                    float.Parse(data2[0], CultureInfo.GetCultureInfo("en-GB")),// .Replace('.', ',')
+                    float.Parse(data2[1], CultureInfo.GetCultureInfo("en-GB")),// .Replace('.', ',')
+                    float.Parse(data2[2], CultureInfo.GetCultureInfo("en-GB")),// .Replace('.', ',')
+                    float.Parse(data2[3], CultureInfo.GetCultureInfo("en-GB")) // .Replace('.', ',')
+                    );
 
-            float gx = StrToF(data2[1]) * TO_RAD / TO_DEG_PER_SEC;
-            float gy = StrToF(data2[2]) * TO_RAD / TO_DEG_PER_SEC;
-            float gz = StrToF(data2[3]) * TO_RAD / TO_DEG_PER_SEC;
-            float ax = StrToF(data2[4]);
-            float ay = StrToF(data2[5]);
-            float az = StrToF(data2[6]);
+                AverageFilter[index].NewValue(Data);
+                if (IsUseAverageFilter) Data = AverageFilter[index].GetAverageValue();
 
+                Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
 
+                Transform item = Skeleton.GetBonesArray()[index];
+                item.localRotation = q;
+                item.Rotate(0, _offsets[index], 0, Space.World);
 
-            _dmp[index].UpdateIMU(long.Parse(data2[0]) / 1000f, gx, gy, gz, ax, ay, az);
+            }
+            else
+            {
+                if (data1[0].Length > 0)
+                    if (data1[0][0] == 'H')
+                    {
+                        Hand.DoHand(data1[0][1] == 'T');
+                    }
+            }
         }
     }
 
 
-
-    private float StrToF(string value)
+    public void DataParserForLog(string data)
     {
-        return float.Parse(value, CultureInfo.GetCultureInfo("en-GB"));
+        if (data[0] != '|')
+            _logs.Enqueue(data);
     }
 
-
+    public void WriteLogs()
+    {
+        for (int i = 0; i < _logs.Count; i++)
+        {
+            var m = _logs.Dequeue();
+            if (m[0] == '>' || m[0] == '.' || m[0] == '*')
+            {
+                MainUI.AddToPrevLog(m);
+                MainUI.Self.AddToLogField(_data);
+            }
+            else 
+            { 
+                MainUI.Log(m);
+                MainUI.Self.UpdateLogField(_data);
+            }
+        }
+    }
 
 
     public void AddOffset(int boneIndex, float offset)

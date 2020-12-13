@@ -181,9 +181,8 @@ MonoBehaviour:
   SettingDynamicOffestsTime: 120
   UseDinamicOffsetsDeltaTime: 5
   Warrning: {fileID: 0}
-  _startRotation: []
-  _offsets: []
-  _dynamicOffsets: []
+  IsUseAverageFilter: 0
+  AverageFilterCapacity: 10
 --- !u!114 &268123202254073895
 MonoBehaviour:
   m_ObjectHideFlags: 0
