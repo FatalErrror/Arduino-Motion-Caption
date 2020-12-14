@@ -13,9 +13,8 @@ public class VirtualSkeleton : MonoBehaviour
     public float SettingDynamicOffestsTime = 120, UseDinamicOffsetsDeltaTime = 5;
     public GameObject Warrning;
 
-    public Filters.Filters UseFilter;
-    public int RAFCapacity = 10;
-    public float TFThrashold = 100;
+    public bool UseFilter = true;
+    public float TFThrashold = 0.015f;
 
     private bool[] _isContole;
     private int[] _numberMap = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
@@ -87,7 +86,6 @@ public class VirtualSkeleton : MonoBehaviour
         for (int i = 0; i < SENSORS_COUNT; i++)
         {
             VirtualSensors[i].UseFilter = UseFilter;
-            VirtualSensors[i].RAFCapacity = RAFCapacity;
             VirtualSensors[i].TFThrashold = TFThrashold;
         }
         DataParser();

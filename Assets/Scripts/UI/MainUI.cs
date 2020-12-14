@@ -132,14 +132,14 @@ public class MainUI : MonoBehaviour
     }
 
 
-    public void IsUseAverageFilter(bool val)
+    public void IsUseThrasholdFilter(bool val)
     {
-        //MainVirtualSkeleton.IsUseAverageFilter = val;
+        MainVirtualSkeleton.UseFilter = val;
     }
 
     public void ChouseFilter(int num)
     {
-        MainVirtualSkeleton.UseFilter = (Filters.Filters)(num);
+        //MainVirtualSkeleton.UseFilter = (Filters.Filters)(num);
     }
 
 

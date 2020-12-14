@@ -18,13 +18,10 @@ public class VirtualSensor
     private float _yRotationOffset;
     private Vector3 _dynamicGyroOffset;
 
-    public Filters.Filters UseFilter;
-    public int RAFCapacity = 10;
-    public float TFThrashold = 100;
+    public bool UseFilter = true;
+    public float TFThrashold = 0.015f;
 
-    private Filters.Vector4Filters.RuningAverageFilter _runingAverageFilter;
     private Filters.Vector4Filters.ThrasholdFilter _thrasholdFilter;
-    private Filters.Vector4Filters.ThrasholdRuningAverageFilter _thrasholdRuningAverageFilter;
 
 
 
@@ -41,33 +38,18 @@ public class VirtualSensor
          if (isControle) container1.parent = root;
         _dmp = new MadgwickAHRS();
 
-        _runingAverageFilter = new Filters.Vector4Filters.RuningAverageFilter(RAFCapacity);
         _thrasholdFilter = new Filters.Vector4Filters.ThrasholdFilter(TFThrashold);
-        _thrasholdRuningAverageFilter = new Filters.Vector4Filters.ThrasholdRuningAverageFilter(TFThrashold, RAFCapacity);
         //Filtrate = Filtrating;
     }
 
     private Vector4 Filtrating(Vector4 data)
     {
-        _runingAverageFilter.SetFilterCapacity(RAFCapacity);
         _thrasholdFilter.Thrashold = TFThrashold;
-        _thrasholdRuningAverageFilter.Thrashold = TFThrashold;
-        _thrasholdRuningAverageFilter.SetFilterCapacity(RAFCapacity);
-
-        _runingAverageFilter.NewValue(data);
         _thrasholdFilter.NewValue(data);
-        _thrasholdRuningAverageFilter.NewValue(data);
 
-        switch (UseFilter)
+        if (UseFilter)
         {
-            case Filters.Filters.None:
-                return data;
-            case Filters.Filters.RuningAverageFilter:
-                return _runingAverageFilter.GetValue();
-            case Filters.Filters.ThrasholdFilter:
-                return _thrasholdFilter.GetValue();
-            case Filters.Filters.ThrasholdRuningAverageFilter:
-                return _thrasholdRuningAverageFilter.GetValue();
+            return _thrasholdFilter.GetValue();
         }
         return data;
     }
@@ -81,15 +63,15 @@ public class VirtualSensor
         float ay = data[4];
         float az = data[5];
 
-        /*/
-        if (Filtrate.Method != null) 
-        { 
-            var a = Filtrate(new Vector3(ax, ay, az));
-            ax = a.x;
-            ay = a.y;
-            az = a.z;
-        }
-        /*/
+        //
+        //if (Filtrate.Method != null) 
+        //{ 
+        //    var g = Filtrating(new Vector3(gx, gy, gz));
+        //    gx = g.x;
+        //    gy = g.y;
+        //    gz = g.z;
+        //}
+        //
 
         gx = gx * TO_RAD / TO_DEG_PER_SEC;
         gy = gy * TO_RAD / TO_DEG_PER_SEC;
