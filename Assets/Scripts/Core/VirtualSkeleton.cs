@@ -16,6 +16,11 @@ public class VirtualSkeleton : MonoBehaviour
     public bool UseFilter = true;
     public float TFThrashold = 0.015f;
 
+    public bool UseFilter1 = true;
+    public float TFThrashold1 = 0.015f;
+    public bool UseFilter2 = true;
+    public float TFThrashold2 = 0.015f;
+
     private bool[] _isContole;
     private int[] _numberMap = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 };
 
@@ -87,6 +92,11 @@ public class VirtualSkeleton : MonoBehaviour
         {
             VirtualSensors[i].UseFilter = UseFilter;
             VirtualSensors[i].TFThrashold = TFThrashold;
+
+            VirtualSensors[i].UseFilter1 = UseFilter1;
+            VirtualSensors[i].TFThrashold1 = TFThrashold1;
+            VirtualSensors[i].UseFilter2 = UseFilter2;
+            VirtualSensors[i].TFThrashold2 = TFThrashold2;
         }
         DataParser();
     }
@@ -232,6 +242,14 @@ public class VirtualSkeleton : MonoBehaviour
     private float StrToF(string value)
     {
         return float.Parse(value, CultureInfo.GetCultureInfo("en-GB"));
+    }
+
+    public void ResetDMP()
+    {
+        for (int i = 0; i < VirtualSensors.Length; i++)
+        {
+            VirtualSensors[i].ResetDMP();
+        }
     }
 
 }

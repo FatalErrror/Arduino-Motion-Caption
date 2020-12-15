@@ -394,6 +394,50 @@ namespace Filters
                 return _runingAverage.GetFilterCapacity();
             }
         }
+
+        public class ThrasholdFilterL2
+        {
+            public float Thrashold;
+
+            private Vector4 _prevValue;
+            private bool[] next = new bool[4];
+
+            public ThrasholdFilterL2(float thrashold)
+            {
+                Thrashold = thrashold;
+            }
+
+            public void NewValue(Vector4 value)
+            {
+                NewValueAlg(0, ref _prevValue.x, ref value.x);
+                NewValueAlg(1, ref _prevValue.y, ref value.y);
+                NewValueAlg(2, ref _prevValue.z, ref value.z);
+                NewValueAlg(3, ref _prevValue.w, ref value.w);
+            }
+
+            private void NewValueAlg(int index, ref float prevVal, ref float newVal)
+            {
+                if (next[index])
+                {
+                    if (!(System.Math.Abs(newVal - prevVal) > Thrashold)) next[index] = false;
+                    prevVal = newVal;
+                }
+                else
+                {
+                    if (System.Math.Abs(newVal - prevVal) > Thrashold)
+                    {
+                        prevVal = newVal;
+                        next[index] = true;
+                    }
+                }
+            }
+
+            public Vector4 GetValue()
+            {
+                return _prevValue;
+            }
+        }
+
     }
 
     public enum Filters
@@ -403,25 +447,6 @@ namespace Filters
         ThrasholdFilter,
         ThrasholdRuningAverageFilter
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 }

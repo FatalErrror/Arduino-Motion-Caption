@@ -21,7 +21,17 @@ public class VirtualSensor
     public bool UseFilter = true;
     public float TFThrashold = 0.015f;
 
-    private Filters.Vector4Filters.ThrasholdFilter _thrasholdFilter;
+
+    public bool UseFilter1 = true;
+    public float TFThrashold1 = 0.015f;
+    public bool UseFilter2 = true;
+    public float TFThrashold2 = 0.015f;
+
+
+    private Filters.Vector4Filters.ThrasholdFilterL2 _thrasholdFilter;
+
+    private Filters.Vector3Filters.ThrasholdFilter _thrasholdFilter1;
+    private Filters.Vector3Filters.ThrasholdFilter _thrasholdFilter2;
 
 
 
@@ -38,8 +48,16 @@ public class VirtualSensor
          if (isControle) container1.parent = root;
         _dmp = new MadgwickAHRS();
 
-        _thrasholdFilter = new Filters.Vector4Filters.ThrasholdFilter(TFThrashold);
+        _thrasholdFilter = new Filters.Vector4Filters.ThrasholdFilterL2(TFThrashold);
+
+        _thrasholdFilter1 = new Filters.Vector3Filters.ThrasholdFilter(TFThrashold1);
+        _thrasholdFilter2 = new Filters.Vector3Filters.ThrasholdFilter(TFThrashold2);
         //Filtrate = Filtrating;
+    }
+
+    public void ResetDMP()
+    {
+        _dmp = new MadgwickAHRS();
     }
 
     private Vector4 Filtrating(Vector4 data)
@@ -50,6 +68,30 @@ public class VirtualSensor
         if (UseFilter)
         {
             return _thrasholdFilter.GetValue();
+        }
+        return data;
+    }
+
+    private Vector3 Filtrating1(Vector3 data)
+    {
+        _thrasholdFilter1.Thrashold = TFThrashold1;
+        _thrasholdFilter1.NewValue(data);
+
+        if (UseFilter1)
+        {
+            return _thrasholdFilter1.GetValue();
+        }
+        return data;
+    }
+
+    private Vector3 Filtrating2(Vector3 data)
+    {
+        _thrasholdFilter2.Thrashold = TFThrashold2;
+        _thrasholdFilter2.NewValue(data);
+
+        if (UseFilter2)
+        {
+            return _thrasholdFilter2.GetValue();
         }
         return data;
     }
@@ -65,11 +107,17 @@ public class VirtualSensor
 
         //
         //if (Filtrate.Method != null) 
-        //{ 
-        //    var g = Filtrating(new Vector3(gx, gy, gz));
-        //    gx = g.x;
-        //    gy = g.y;
-        //    gz = g.z;
+        //{
+        var g = Filtrating1(new Vector3(gx, gy, gz));
+        gx = g.x;
+        gy = g.y;
+        gz = g.z;
+
+        var a = Filtrating2(new Vector3(ax, ay, az));
+        ax = a.x;
+        ay = a.y;
+        az = a.z;
+
         //}
         //
 
@@ -81,7 +129,7 @@ public class VirtualSensor
 
     public void UpdateTransform()
     {
-        Vector4 Data = _dmp.GetQuaternion();
+        Vector4 Data = _dmp.GetQuaternion(); 
         Data = Filtrating(Data);
         Quaternion q = new Quaternion(Data.x, Data.y, -Data.z, Data.w);
 

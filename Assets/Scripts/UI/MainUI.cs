@@ -132,9 +132,19 @@ public class MainUI : MonoBehaviour
     }
 
 
-    public void IsUseThrasholdFilter(bool val)
+    public void IsUseThrasholdPostFilter(bool val)
     {
         MainVirtualSkeleton.UseFilter = val;
+    }
+
+    public void IsUseThrasholdAccelFilter(bool val)
+    {
+        MainVirtualSkeleton.UseFilter1 = val;
+    }
+
+    public void IsUseThrasholdGyroFilter(bool val)
+    {
+        MainVirtualSkeleton.UseFilter2 = val;
     }
 
     public void ChouseFilter(int num)
@@ -142,6 +152,10 @@ public class MainUI : MonoBehaviour
         //MainVirtualSkeleton.UseFilter = (Filters.Filters)(num);
     }
 
+    public void ResetDMP()
+    {
+        MainVirtualSkeleton.ResetDMP();
+    }
 
 
 }
