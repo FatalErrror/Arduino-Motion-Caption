@@ -139,12 +139,12 @@ public class MainUI : MonoBehaviour
 
     public void IsUseThrasholdAccelFilter(bool val)
     {
-        MainVirtualSkeleton.UseFilter1 = val;
+        MainVirtualSkeleton.UseFilter2 = val;
     }
 
     public void IsUseThrasholdGyroFilter(bool val)
     {
-        MainVirtualSkeleton.UseFilter2 = val;
+        MainVirtualSkeleton.UseFilter1 = val;
     }
 
     public void ChouseFilter(int num)
