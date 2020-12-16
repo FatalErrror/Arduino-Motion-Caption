@@ -28,6 +28,8 @@ public class ControlableCharacter : MonoBehaviour
             item.parent = container;
             item.rotation = q;
         }
+
+        gameObject.SetActive(false);
     }
 
     // Update is called once per frame

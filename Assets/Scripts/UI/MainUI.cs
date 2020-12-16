@@ -5,12 +5,13 @@ using UnityEngine.UI;
 public class MainUI : MonoBehaviour
 {
     public VirtualSkeleton MainVirtualSkeleton;
+    public GameObject[] Characters;
 
     public Text LogField;
 
     public Text Content;
 
-    public Dropdown Filter;
+    public Dropdown CharactersList;
 
     public static MainUI Self;
 
@@ -36,6 +37,12 @@ public class MainUI : MonoBehaviour
         _addToPrevLog = AddToPrevLog1;
         _logerror = LogError1;
         Self = this;
+        for (int i = 0; i < Characters.Length; i++)
+        {
+            CharactersList.options.Add(new Dropdown.OptionData(Characters[i].name));
+        }
+        CharactersList.onValueChanged.AddListener(ChouseCharacter);
+        CharactersList.value = 1;
     }
 
     public static void Log(string message)
@@ -150,6 +157,15 @@ public class MainUI : MonoBehaviour
     public void ChouseFilter(int num)
     {
         //MainVirtualSkeleton.UseFilter = (Filters.Filters)(num);
+    }
+
+    public void ChouseCharacter(int num)
+    {
+        for (int i = 0; i < Characters.Length; i++)
+        {
+            Characters[i].gameObject.SetActive(false);
+            if (num == i) Characters[i].gameObject.SetActive(true);
+        }
     }
 
     public void ResetDMP()

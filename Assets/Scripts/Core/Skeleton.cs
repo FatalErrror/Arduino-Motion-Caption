@@ -101,6 +101,17 @@ public class Skeleton : MonoBehaviour
         _bones[(int)Indexs.RightKnee] = _rightKnee;
         _bones[(int)Indexs.RightAnkle] = _rightAnkle;
 
+        for (int i = 0; i < _bones.Length; i++)
+        {
+            if (!_bones[i])
+            {
+                _bones[i] = GameObject.CreatePrimitive(PrimitiveType.Cube).transform;
+                _bones[i].parent = _root;
+                _bones[i].localPosition = Vector3.zero;
+                GameObject.Destroy(_bones[i].GetComponent<MeshFilter>());
+                GameObject.Destroy(_bones[i].GetComponent<MeshRenderer>());
+            }
+        }
     }
 
     public Transform[] GetBonesArray()
