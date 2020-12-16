@@ -3,7 +3,9 @@
 public class CameraControle : MonoBehaviour
 {
     public Transform Camera;
+    public float MovementSpeed = 0.03f;
     private Vector3 _previosMousePosition;
+
 
     // Start is called before the first frame update
     void Start()
@@ -15,18 +17,28 @@ public class CameraControle : MonoBehaviour
     void Update()
     {
         Camera.Translate(0, 0, (float)(Input.mouseScrollDelta.y * 0.2));
-        if (Input.GetMouseButtonDown(0))
+
+        if (Input.GetMouseButtonDown(1))
         {
             _previosMousePosition = Input.mousePosition;
             //GameManager._GameManager.Log("pressed left button");
         }
-        else if (Input.GetMouseButton(0))
+        else if (Input.GetMouseButton(1))
         {
-            _previosMousePosition = Input.mousePosition - _previosMousePosition;
-            _previosMousePosition = new Vector3(-_previosMousePosition.y * 0.2f, _previosMousePosition.x * 0.2f, 0);
-            _previosMousePosition = new Vector3(Camera.eulerAngles.x + _previosMousePosition.x, Camera.eulerAngles.y + _previosMousePosition.y, 0);
-            Camera.eulerAngles = _previosMousePosition;
+            var rotate = Input.mousePosition - _previosMousePosition;
             _previosMousePosition = Input.mousePosition;
+
+            rotate = new Vector3(-rotate.y * 0.2f, rotate.x * 0.2f, 0);
+            rotate = new Vector3(Camera.eulerAngles.x + rotate.x, Camera.eulerAngles.y + rotate.y, 0);
+            Camera.eulerAngles = rotate;
+
+            if (Input.GetKey(KeyCode.A)) Camera.Translate(Vector3.left * MovementSpeed);
+            if (Input.GetKey(KeyCode.S)) Camera.Translate(Vector3.back * MovementSpeed);
+            if (Input.GetKey(KeyCode.W)) Camera.Translate(Vector3.forward * MovementSpeed);
+            if (Input.GetKey(KeyCode.D)) Camera.Translate(Vector3.right * MovementSpeed);
+            if (Input.GetKey(KeyCode.Q)) Camera.Translate(Vector3.down * MovementSpeed);
+            if (Input.GetKey(KeyCode.E)) Camera.Translate(Vector3.up * MovementSpeed);
+
         }
         if (Input.GetMouseButtonDown(2))
         {
@@ -39,5 +51,7 @@ public class CameraControle : MonoBehaviour
             Camera.Translate(_previosMousePosition);
             _previosMousePosition = Input.mousePosition;
         }
+
+
     }
 }
