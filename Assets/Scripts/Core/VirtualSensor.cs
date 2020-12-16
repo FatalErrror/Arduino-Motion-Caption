@@ -35,8 +35,6 @@ public class VirtualSensor
 
 
 
-
-
     // Start is called before the first frame update
     public VirtualSensor(Transform transform, GameObject container, Transform root, bool isControle)
     {
