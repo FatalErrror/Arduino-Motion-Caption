@@ -68,7 +68,6 @@ void setup() {
   splitter.begin();
 
   for (int i = 0; i < SEN_COUNT; i++){
-    if (i == 5) continue;// delete this
     splitter.setBusChannel(i);
     sensors[i] = Sensor();
     sensors[i].Init(i);
@@ -81,7 +80,6 @@ void setup() {
 void loop() {
   String data = "";
   for (int i = 0; i < SEN_COUNT; i++){
-    if (i == 5) continue;// delete this
     splitter.setBusChannel(i);
     data += "|";
     data += sensors[i].GetData();
