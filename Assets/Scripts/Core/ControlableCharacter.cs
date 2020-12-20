@@ -29,7 +29,6 @@ public class ControlableCharacter : MonoBehaviour
             item.rotation = q;
         }
 
-        gameObject.SetActive(false);
     }
 
     // Update is called once per frame
