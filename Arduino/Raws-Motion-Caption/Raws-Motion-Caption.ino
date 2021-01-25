@@ -6,7 +6,7 @@
 
 int CalibratingCount;
 
-class Sensor  // имя класса принято писать с Большой Буквы
+class Sensor
 {
   private:
     MPU6050 mpu;

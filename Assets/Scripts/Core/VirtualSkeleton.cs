@@ -108,11 +108,12 @@ public class VirtualSkeleton : MonoBehaviour
 
     public IEnumerator<WaitForSecondsRealtime> CalibrateImmediately()
     {
-        yield return new WaitForSecondsRealtime(3f);
-        for (int i = 0; i < VirtualSensors.Length; i++)
+        yield return new WaitForSecondsRealtime(4f);
+        ResetDMP();
+        /*for (int i = 0; i < VirtualSensors.Length; i++)
         {
             VirtualSensors[i].Calibrate();
-        }
+        }*/
     }
 
 
